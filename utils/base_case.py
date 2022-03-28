@@ -1,20 +1,22 @@
 import json.decoder
 
-from typing import Any
 from requests import Response
 
 
 class BaseCase(object):
 
-    def get_cookie(self, response: Response, cookie_name: str) -> str:
+    @staticmethod
+    def get_cookie(response: Response, cookie_name: str) -> str:
         assert cookie_name in response.cookies, f"Cannot find cookie with name {cookie_name} in the last response."
         return response.cookies[cookie_name]
 
-    def get_header(self, response: Response, headers_name: str) -> str:
+    @staticmethod
+    def get_header(response: Response, headers_name: str) -> str:
         assert headers_name in response.headers, f"Cannot find header with name {headers_name} in the last response."
         return response.headers[headers_name]
 
-    def get_json_value(self, response: Response, name: str) -> Any:
+    @staticmethod
+    def get_json_value(response: Response, name: str) -> str:
         try:
             response_as_dict = response.json()
         except json.decoder.JSONDecodeError:

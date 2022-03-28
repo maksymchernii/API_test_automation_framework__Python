@@ -1,36 +1,38 @@
 import pytest
-import requests
+import allure
 
+from requests import Response, Request
 from utils.base_case import BaseCase
 from utils.assertions import Assertions
+from utils.requests_manager import RequestsManager
 
 
+@allure.epic("Authorization cases.")
 class TestUsersAuth(BaseCase):
-    exclude_params = [
+    EXCLUDE_PARAMS: list = [
         ("no_cookie"),
         ("no_token")
     ]
 
     def setup(self):
-        self.login_url = "https://playground.learnqa.ru/api/user/login"
-        self.check_user_auth_url = "https://playground.learnqa.ru/api/user/auth"
-
-        data = {
+        data: dict = {
             "email": "vinkotov@example.com",
             "password": "1234"
         }
 
-        response = requests.post(url=self.login_url, data=data)
+        response: Response = RequestsManager.post(uri="user/login", data=data)
 
-        self.auth_sid = self.get_cookie(response=response, cookie_name="auth_sid")
-        self.token = self.get_header(response=response, headers_name="x-csrf-token")
-        self.user_id_from_auth_endpoint = self.get_json_value(response=response, name="user_id")
+        self.auth_sid: str = self.get_cookie(response=response, cookie_name="auth_sid")
+        self.token: str = self.get_header(response=response, headers_name="x-csrf-token")
+        self.user_id_from_auth_endpoint: str = self.get_json_value(response=response, name="user_id")
 
-        self.headers = {"x-csrf-token": self.token}
-        self.cookies = {"auth_sid": self.auth_sid}
+        self.headers: dict = {"x-csrf-token": self.token}
+        self.cookies: dict = {"auth_sid": self.auth_sid}
 
+    @allure.description("Verify is user do auth successfully.")
     def test_auth_user(self):
-        response = requests.get(url=self.check_user_auth_url, headers=self.headers, cookies=self.cookies)
+        response: Response = RequestsManager.get(uri="user/auth", headers=self.headers, cookies=self.cookies)
+
         Assertions.assert_json_value_by_name(
             response=response,
             name="user_id",
@@ -38,11 +40,12 @@ class TestUsersAuth(BaseCase):
             error_message="User id from auth endpoint is not equal to user id from check endpoint"
         )
 
-    @pytest.mark.parametrize("condition", exclude_params)
+    @allure.description("Verify auth status w/o sending auth cookie or token.")
+    @pytest.mark.parametrize("condition", EXCLUDE_PARAMS)
     def test_negative_auth_check(self, condition):
-        response = \
-            requests.get(url=self.check_user_auth_url, headers=self.headers) if condition == "no_cookie" \
-            else requests.get(url=self.check_user_auth_url, cookies=self.cookies)
+        response: Response = \
+            RequestsManager.get(uri="user/auth", headers=self.headers) if condition == "no_cookie" \
+            else RequestsManager.get(uri="user/auth", cookies=self.cookies)
 
         Assertions.assert_json_value_by_name(
             response=response,
